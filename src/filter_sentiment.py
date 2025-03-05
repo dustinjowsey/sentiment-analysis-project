@@ -1,15 +1,15 @@
 import csv
 import string
+from constants import PATH_DATA_RAW
+from constants import PATH_DATA_PROCESSED
 
 # In order for this to work, import the csv into google docs then download it again.
 # That fixes some odd encoding.
-PATH_DATA_RAW = "../data/raw/"
-PATH_DATA_FILTERED = "../data/filtered/"
 
-#Filters out characters like '.', ','
+#Filters out characters like '.', ',' and converts to lower case
 def filter_sentiment(file_name, comment_col, row_col):
     fh1 = open(PATH_DATA_RAW + file_name, "r", encoding='utf-8')
-    fh2 = open(PATH_DATA_FILTERED + file_name, "w", encoding='utf-8')
+    fh2 = open(PATH_DATA_PROCESSED + file_name, "w", encoding='utf-8')
     # youtube_sentiment.csv:
     # ['', 'Video ID', 'Comment', 'Likes', 'Sentiment']
 
