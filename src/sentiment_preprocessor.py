@@ -2,7 +2,10 @@ import numpy as np
 import string
 import pandas as pd
 import csv
+import gzip
+import shutil
 from sklearn.feature_extraction.text import CountVectorizer
+
 from constants import PATH_DATA_RAW
 from constants import PATH_DATA_PROCESSED
 from constants import PATH_DATA_BOW
@@ -21,8 +24,19 @@ class SentimentPreprocessor:
     def filter(self, comment_col, label_col):
         """Filters out characters like '.', ',' and converts to lower case"""
 
-        fh1 = open(PATH_DATA_RAW + self.filename, "r", encoding='utf-8')
-        fh2 = open(PATH_DATA_PROCESSED + self.filename, "w", encoding='utf-8')
+        #convert file to gzip to save storage
+        #NOTE you need to manually delete the old csv file
+        if not self.filename.endswith('.gz'):
+            fh1_cv = open(PATH_DATA_RAW + self.filename, "rb")
+            fh1_gz = gzip.open(PATH_DATA_RAW + self.filename + ".gz", "wb")
+            shutil.copyfileobj(fh1_cv, fh1_gz)
+            fh1_cv.close()
+            fh1_gz.close()
+            self.filename += ".gz"
+
+        #open gzip file
+        fh1 = gzip.open(PATH_DATA_RAW + self.filename, "rt", encoding='utf-8')
+        fh2 = gzip.open(PATH_DATA_PROCESSED + self.filename, "wt", encoding='utf-8')
         # youtube_sentiment.csv:
         # ['', 'Video ID', 'Comment', 'Likes', 'Sentiment']
 
@@ -59,10 +73,10 @@ class SentimentPreprocessor:
         """Loads data into a pandas dataframe
         NOTE need to load from filtered data"""
         try:
-            df = pd.read_csv(PATH_DATA_PROCESSED + self.filename)
+            df = pd.read_csv(PATH_DATA_PROCESSED + self.filename, compression='gzip')
             return df
         except:
-            raise Exception(f"Could not load data from '{PATH_DATA_PROCESSED + self.filename}'\nDid you filter the data first?")
+            raise Exception(f"Could not load data from '{PATH_DATA_PROCESSED + self.filename}'\nDid you filter the data first?\nThe data should be compressed as gzip")
 
     def bag_of_words(self):
         """Turns the processed data into a bag of words representation"""
@@ -73,7 +87,7 @@ class SentimentPreprocessor:
 
         out_df = pd.DataFrame(X.toarray(), columns=vectorizer.get_feature_names_out())
         out_df['label'] = df['label']
-        out_df.to_csv(PATH_DATA_BOW + self.filename, index=False)
+        out_df.to_csv(PATH_DATA_BOW + self.filename, index=False, compression='gzip')
 
 
 
