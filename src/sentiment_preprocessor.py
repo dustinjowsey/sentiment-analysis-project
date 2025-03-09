@@ -5,6 +5,7 @@ import csv
 import gzip
 import shutil
 from sklearn.feature_extraction.text import CountVectorizer
+import math
 
 from constants import PATH_DATA_RAW
 from constants import PATH_DATA_PROCESSED
@@ -78,15 +79,24 @@ class SentimentPreprocessor:
         except:
             raise Exception(f"Could not load data from '{PATH_DATA_PROCESSED + self.filename}'\nDid you filter the data first?\nThe data should be compressed as gzip")
 
-    def bag_of_words(self):
-        """Turns the processed data into a bag of words representation"""
+    def bag_of_words(self, vectorizer=None):
+        """Turns the processed data into a bag of words representation
+           NOTE you are porbably better off just using CountVectorizer to do this yourself.
+           It is hard to format nicely into a file to be used later."""
         df = self.__load_data()
 
-        vectorizer = CountVectorizer()
-        X = vectorizer.fit_transform(df["comment"].to_list(), df['label'].to_list())
+        if vectorizer is None:
+            vectorizer = CountVectorizer()
+        
+        X = vectorizer.fit_transform(df["comment"].to_list())
+        frequencies = pd.DataFrame(X.toarray(), columns=vectorizer.get_feature_names_out())
+        
+        out_df = pd.DataFrame({'labels': df["label"]})
+        out_df = pd.concat([out_df, frequencies], axis=1)
+        #Make frequencies column into a dictionary and remove NaN values (i.e. missing data)
+        out_df["frequencies"] = out_df.drop(columns="labels").apply(lambda row: {word: (0 if math.isnan(row[word]) else row[word]) for word in frequencies[:]}, axis=1)
+        
 
-        out_df = pd.DataFrame(X.toarray(), columns=vectorizer.get_feature_names_out())
-        out_df['label'] = df['label']
         out_df.to_csv(PATH_DATA_BOW + self.filename, index=False, compression='gzip')
 
 
