@@ -2,7 +2,8 @@ import math
 import random
 import sklearn
 import matplotlib.pyplot as plt
-
+import sklearn.neural_network
+import helpers
 
 MAX_OF_LABEL = 2250
 
@@ -56,6 +57,7 @@ print("Testing set size\n"
 #   Experimentation  #
 ######################
 
+"""
 # Train on the neural network and score it for accuracy
 basic_mlp = sklearn.neural_network.MLPClassifier(max_iter=400, random_state=0)
 basic_mlp.fit(X_train, y_train)
@@ -70,15 +72,49 @@ print(f"Accuracies\n"
 # 0.6103703703703703
 # The training accuracy is really high. We are overfitting. Adjusting the alpha helps with this.
 # The test accuracy is almost twice as good as random guessing. Nice. This will improve with tuning.
+"""
+
+# Here's an example of using the threaded K-Fold cross validation helper I made :)
+some_mlp = sklearn.neural_network.MLPClassifier(random_state=0)
+avg_acc = helpers.K_Fold_Threaded(2, X_train, y_train, some_mlp)
+print(avg_acc)
+
+
 
 """
 TO DO:
-    Tune the model on (two?) parameters.
-    Perhaps the alpha on a logarithmic range from 10^-4 up to 10^2
-    and another. 
-    
-    Don't do K-Fold yet. Just use a validation set for these configurations.
+    Gridsearch K-Fold validation on alpha and another parameter.
+"""
 
-    Find an optimal configuration like we did for A2, then try slightly varying 
-    the values in the optimal configuration. For these slight variations, do K-Fold
+"""
+a_range = [i/2 for i in range(1, 11)]
+
+exp1_tscores      = []
+exp1_vscores      = []
+for a in a_range:
+      cur_mlp = sklearn.neural_network.MLPClassifier(max_iter=400, random_state=0, alpha = a)
+      cur_mlp.fit(X_train, y_train)
+      exp1_tscores.append(cur_mlp.score(X_train, y_train))
+      exp1_vscores.append(cur_mlp.score(X_test, y_test))
+
+print(exp1_tscores)
+print(exp1_vscores)
+"""
+
+# Best alpha so far is alpha = 1.5 with acc = 0.676296
+# Maybe gridsearch on alphas ranging from 0.5 to 2.5 in increments of 0.25
+
+"""
+pseudo
+
+initalize best configuration to (p1[0], p2[0])
+best acc = 0
+for p1 in first parameter range
+      for p2 in second paramter range
+            cur_acc = result of k fold validation 
+            if cur_acc > best_acc:
+                  best config becomes current config
+                  best acc becomes current acc
+save best configuration
+
 """
