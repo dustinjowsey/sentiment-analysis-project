@@ -194,3 +194,30 @@ print("Best Score:", best_score)
 
 #Best Parameters: {'alpha': np.float64(1.0), 'hidden_layer_sizes': (200,)}
 #Best Score: 0.7359843546284224
+
+
+##5 FOLD##
+
+
+#"alpha": np.arange(0.5, 2.5, 0.25),
+#"hidden_layer_sizes": [(50,), (100,)] 
+
+##Best Parameters: {'alpha': np.float64(1.25), 'hidden_layer_sizes': (50,)}
+#Best Score: 0.7395696532290469
+
+
+# "alpha": np.arange(0.5, 2.5, 0.25),
+# "hidden_layer_sizes": [(100,), (150,)] 
+
+#Best Parameters: {'alpha': np.float64(0.5), 'hidden_layer_sizes': (150,)}
+#Best Score: 0.7402761453511219
+
+
+# "alpha": np.arange(0.5, 2.5, 0.25),
+# "hidden_layer_sizes": [(150,), (200,)] 
+
+#Best Parameters: {'alpha': np.float64(0.5), 'hidden_layer_sizes': (150,)}
+#Best Score: 0.7402761453511219
+
+
+#to find the test accuracy with after choosing the best parameters to use
