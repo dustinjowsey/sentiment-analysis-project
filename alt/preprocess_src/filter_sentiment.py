@@ -1,25 +1,43 @@
 import csv
 import string
+from constants import *
 
 # In order for this to work, import the csv into google docs then download it again.
 # That fixes some odd encoding.
-PATH_YT_I       = "../data/YouTube/raw.csv"
-PATH_YT_O       = "../data/YouTube/preprocessed.csv"
 
-# comments.csv:
-# ['', 'Video ID', 'Comment', 'Likes', 'Sentiment']
+# YouTube labels need only be reduced by 1
+def f1(L):
+    return int(L) - 1
 
-fh1 = open(PATH_YT_I, "r", encoding='utf-8')
-fh2 = open(PATH_YT_O, "w", encoding='utf-8')
-fh1.readline()
-reader = csv.reader(fh1)
+# Reddit labels are what they should be
+def f2(L):
+    return int(L)
 
-for row in reader:
-    comment, sentiment = row[2], row[4]
+# Twitter labels are in natural language so they will be converted to -1, 0, or 1
+def f3(L):
+    if L == "positive": return 1
+    if L == "negative": return -1
+    return 0
 
-    # filter out punctuation characters from each comment then join each valid character on ''
-    filtered = ''.join(filter(lambda c: c not in string.punctuation + "\n", comment.lower().replace('\n', ' ').replace('.', ' ').strip()))
-    fh2.write(f"{filtered},{int(sentiment)-1}\n") # -1 abuses the labels being 1 offset from what we want. Only good for the YouTube set perhaps.
+# comment row, label row, and label transformation function
+formats         = [(2, 4, f1), (0, 1, f2), (1, 2, f3)]
 
-fh1.close()
-fh2.close()
+for i in range(len(PATHS)):
+    fh1 = open(PATHS[i] + RAW_NAME, 'r', encoding='utf-8')
+    fh2 = open(PATHS[i] + CLN_NAME, 'w', encoding='utf-8')
+
+    fh1.readline()
+    reader = csv.reader(fh1)
+
+    for row in reader:
+        comment, sentiment = row[formats[i][0]], row[formats[i][1]]
+
+        # massive filter line to clean the text
+        filtered = ''.join(filter(lambda c: c not in string.punctuation and c not in string.digits + "\n", comment.lower().replace('\n', ' ').replace('.', ' ').strip()))
+        filtered = filtered.split(' ')
+        filtered = ' '.join([w for w in filtered if w != ''])
+        fh2.write(f"{filtered},{formats[i][2](sentiment)}\n") # Write the cleaned comment and adjusted label to the file
+
+    fh1.close()
+    fh2.close()
+    print(PATHS[i] + RAW_NAME, "==>", (PATHS[i] + CLN_NAME))
