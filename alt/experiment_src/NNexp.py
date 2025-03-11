@@ -4,6 +4,11 @@ import sklearn
 import matplotlib.pyplot as plt
 import sklearn.neural_network
 import helpers
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import GridSearchCV, KFold
+from sklearn.neural_network import MLPClassifier
+import joblib
 
 MAX_OF_LABEL = 2250
 
@@ -118,3 +123,74 @@ for p1 in first parameter range
 save best configuration
 
 """
+
+
+
+
+# Load dataset
+dataset_path = "top1000_wf.csv"  # Ensure the file is in the same directory
+df = pd.read_csv(dataset_path)
+
+# Extract features and labels (assuming the last column is the label)
+X = df.iloc[:, :-1].values  # All columns except the last
+y = df.iloc[:, -1].values   # The last column as labels
+
+# Define parameter grid
+param_grid = {
+    "alpha": np.arange(0.5, 2.5, 0.25),
+    "hidden_layer_sizes": [(150,), (200,)]  # medium, large hidden layers
+}
+
+# Initialize MLP Classifier
+mlp = MLPClassifier(max_iter=400, random_state=0)
+
+# Define K-Fold cross-validation
+cv = KFold(n_splits=3, shuffle=True, random_state=0)
+
+# Perform GridSearch with K-Fold validation
+grid_search = GridSearchCV(mlp, param_grid, cv=cv, scoring='accuracy', n_jobs=-1, verbose=1)
+grid_search.fit(X, y)
+
+# Save results 
+best_params = grid_search.best_params_
+best_score = grid_search.best_score_
+joblib.dump(grid_search, "grid_search_results.pkl")
+
+# Print results
+print("Best Parameters:", best_params)
+print("Best Score:", best_score)
+
+
+#best score is average K-Fold validation accuracy
+
+#param_grid = {
+    #"alpha": np.arange(0.5, 2.5, 0.25),
+    #"hidden_layer_sizes": [(50,), (100,)]  # Small, medium hidden layers
+
+#Best Parameters: {'alpha': np.float64(1.5), 'hidden_layer_sizes': (100,)}
+#Best Score: 0.736690569317688
+
+
+#param_grid = {
+    #"alpha": np.arange(0.5, 2.5, 0.25),
+    #"hidden_layer_sizes": [(100,), (150,)]  # medium, large hidden layers
+
+#Best Parameters: {'alpha': np.float64(1.5), 'hidden_layer_sizes': (100,)}
+#Best Score: 0.736690569317688
+
+
+#param_grid = {
+    #"alpha": np.arange(0.5, 2.5, 0.25),
+    #"hidden_layer_sizes": [(100,), (200,)]  # medium, large hidden layers
+
+#Best Parameters: {'alpha': np.float64(1.5), 'hidden_layer_sizes': (100,)}
+#Best Score: 0.736690569317688
+
+
+#param_grid = {
+    #"alpha": np.arange(0.5, 2.5, 0.25),
+    #"hidden_layer_sizes": [(150,), (200,)]  # medium, large hidden layers
+
+
+#Best Parameters: {'alpha': np.float64(1.0), 'hidden_layer_sizes': (200,)}
+#Best Score: 0.7359843546284224
