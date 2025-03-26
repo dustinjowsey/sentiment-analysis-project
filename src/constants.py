@@ -4,3 +4,5 @@ PATH_DATA_RAW = "../data/raw/"
 PATH_DATA_PROCESSED = "../data/preprocessed/"
 #path to data that has undergone bag of words conversion
 PATH_DATA_BOW = "../data/bag_of_words/"
+
+SEED=474
