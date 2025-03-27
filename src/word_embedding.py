@@ -3,6 +3,7 @@ import pandas as pd
 import constants
 import os
 from pathlib import Path
+from sklearn.model_selection import train_test_split 
 
 PATH_TO_GLOVE = Path.home() / "Downloads" / "glove.twitter.27B.25d.txt"
 
@@ -18,7 +19,17 @@ class WordEmbedding:
         self.path_to_glove = path_to_glove
         self.embeddings = {}
 
-    def create_embedding(self):
+    def convert_comment(self, comment, dim):
+        vectors = []
+        for word in comment:
+            if word in self.embeddings:
+                vectors.append(self.embeddings[word])
+            else:
+                vectors.append(np.zeros(dim))
+
+        return np.mean(vectors)
+    
+    def train_test_split(self, **kwargs):
         if self.path_to_glove == "":
             try:
                 glove = open(PATH_TO_GLOVE, 'r', encoding='utf-8')
@@ -38,6 +49,7 @@ class WordEmbedding:
             vector = np.asarray(splits[1:], dtype='float32')
             self.embeddings[word] = vector
         
+        dim = len(splits) - 1
         #Convert file into a vector format based on the glove file
         _, ext = os.path.splitext(self.file)
         if ext == ".csv":
@@ -47,3 +59,10 @@ class WordEmbedding:
         else:
             print(f"Error! The file must be either a csv or gz not {ext}")
             return
+        
+        comments = df["comment"]
+        labels = df["label"]
+        vector = []
+        X = np.array([self.convert_comment(comment, dim) for comment in comments])
+
+        return train_test_split(X, labels, **kwargs)
