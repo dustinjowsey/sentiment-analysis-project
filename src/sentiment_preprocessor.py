@@ -6,7 +6,9 @@ import gzip
 import shutil
 from sklearn.feature_extraction.text import CountVectorizer
 import math
+import os
 
+import constants
 from constants import PATH_DATA_RAW
 from constants import PATH_DATA_PROCESSED
 from constants import PATH_DATA_BOW
@@ -99,6 +101,36 @@ class SentimentPreprocessor:
 
         out_df.to_csv(PATH_DATA_BOW + self.filename, index=False, compression='gzip')
 
+def __load_data(file):
+    """Loads data into a pandas dataframe
+    NOTE need to load from filtered data"""
+    try:
+        df = pd.read_csv(PATH_DATA_PROCESSED + file, compression='gzip')
+        return df
+    except:
+        raise Exception(f"Could not load data from '{PATH_DATA_PROCESSED + file}'\nDid you filter the data first?\nThe data should be compressed as gzip")
 
+def combine_all_datasets():
+    """Combines PreProcessed Data Files"""
+
+    dfs = []
+    for file in os.listdir(PATH_DATA_PROCESSED):
+        #remove old combined file
+        if file == "combined.csv.gz":
+            os.remove(PATH_DATA_PROCESSED + file)
+            continue
+
+        _, ext = os.path.splitext(file)
+        if ext != ".gz":
+            print(f"Skipping {file} Not .gz")
+            continue
+        print(f"Combining {file}")
+        df = __load_data(file)
+        dfs.append(df)
+    
+    out_df = pd.concat(dfs, ignore_index=True)
+    #shuffle dataframe
+    out_df = out_df.sample(frac=1, random_state=constants.SEED).reset_index(drop=True)
+    out_df.to_csv(PATH_DATA_PROCESSED + "combined.csv.gz", index=False, compression="gzip")
 
 
