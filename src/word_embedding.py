@@ -11,15 +11,17 @@ class WordEmbedding:
     def __init__(self, file, path_to_glove=""):
         """
         Creates the word embedding data for your tests.
-        file - The PREPROCESSED file to convert to word embeddings
-        path_to_glove - Path to the downloaded glove embeddings
-                      - NOTE These files are 25, 50, 100, or 200 dimensions as the names suggest
+
+        Args:
+        file (str): The PREPROCESSED file to convert to word embeddings
+        path_to_glove (str): Path to the downloaded glove embeddings
+                             NOTE These files are 25, 50, 100, or 200 dimensions as the names suggest
         """
         self.file = file
         self.path_to_glove = path_to_glove
         self.embeddings = {}
 
-    def convert_comment(self, comment, dim):
+    def __convert_comment(self, comment, dim):
         vectors = []
         for word in comment:
             if word in self.embeddings:
@@ -29,17 +31,28 @@ class WordEmbedding:
 
         return np.mean(vectors)
     
-    def train_test_split(self, **kwargs):
+    def generate_word_embedding(self):
+        """
+        Generates the word embeddings
+
+        Returns:
+            You can use these in test train split
+
+            X: List of vector averages for each comment 
+            
+            y: List of labels
+        """
+
         if self.path_to_glove == "":
             try:
                 glove = open(PATH_TO_GLOVE, 'r', encoding='utf-8')
             except:
-                print(f"ERROR! need a valid path_to_glove paramter, but got {self.path_to_glove}")
+                print(f"ERROR! need a valid path_to_glove paramter, but got '{self.path_to_glove}'")
         else:
             try:
                 glove = open(self.path_to_glove, 'r', encoding='utf-8')
             except:
-                print(f"ERROR! need a valid path_to_glove paramter, but got {self.path_to_glove}")
+                print(f"ERROR! need a valid path_to_glove paramter, but got '{self.path_to_glove}'")
                 return
 
         #create the dictionary to store the word vector values
@@ -62,7 +75,7 @@ class WordEmbedding:
         
         comments = df["comment"]
         labels = df["label"]
+        print(labels)
         vector = []
-        X = np.array([self.convert_comment(comment, dim) for comment in comments])
-
-        return train_test_split(X, labels, **kwargs)
+        X = np.array([self.__convert_comment(str(comment), dim) for comment in comments])
+        return X, labels
