@@ -10,20 +10,22 @@ from sklearn.model_selection import GridSearchCV, KFold
 from sklearn.neural_network import MLPClassifier
 import joblib
 
-MAX_OF_LABEL = 2250
+MAX_OF_LABEL = 5000
 
-
-fh = open("../data/YouTube/top1000_wf.csv")
-
+TRAIN_PATH  = "../data/combined/BoW/5000train.csv"
+TEST_PATH   = "../data/combined/BoW/5000test.csv"
+fh1 = open(TRAIN_PATH)
+fh2 = open(TEST_PATH)
 ######################
 #  Data Preparation  #
 ######################
 
+# Load training data
 x, y = [], []
 i = 0 
 labels = {-1: 0, 0: 0, 1: 0}
 
-for line in fh:
+for line in fh1:
     ls      = line.strip().split(',')
     ls      = [int(entry) for entry in ls]
     label   = ls[-1]
@@ -32,7 +34,7 @@ for line in fh:
     if labels[label] >= MAX_OF_LABEL: continue
     labels[label] += 1
 
-    x.append(ls[:-1])
+    x.append(ls[:1000]) # Only first 1000 features, as there are 5000 now
     y.append(label)
 
 # Show distribution of labels
@@ -47,16 +49,42 @@ random.shuffle(x)
 random.seed(474)
 random.shuffle(y)
 
-# Create training and test sets
+# Create training and validation sets
 div    = math.floor(0.8 * len(x))
-X_train, X_test = x[:div], x[div:]
-y_train, y_test = y[:div], y[div:]
+X_train, X_valid = x[:div], x[div:]
+y_train, y_valid = y[:div], y[div:]
 
 print("Training set size\n"
       f" {len(X_train)}")
 print("Testing set size\n"
-      f" {len(X_test)}")
+      f" {len(X_valid)}")
 
+
+
+# Load test data
+X_test, y_test = [], []
+i = 0 
+labels = {-1: 0, 0: 0, 1: 0}
+
+for line in fh2:
+    ls      = line.strip().split(',')
+    ls      = [int(entry) for entry in ls]
+    label   = ls[-1]
+
+    # Get an equal number of examples of each label
+    if labels[label] >= MAX_OF_LABEL: continue
+    labels[label] += 1
+
+    X_test.append(ls[:1000]) # Only first 1000 features, as there are 5000 now
+    y_test.append(label)
+
+print(X_test)
+
+# Shuffle each list the same way using the same seed
+random.seed(474)
+random.shuffle(X_test)
+random.seed(474)
+random.shuffle(y_test)
 
 ######################
 #   Experimentation  #
@@ -64,27 +92,34 @@ print("Testing set size\n"
 
 """
 # Train on the neural network and score it for accuracy
-basic_mlp = sklearn.neural_network.MLPClassifier(max_iter=400, random_state=0)
+basic_mlp = sklearn.neural_network.MLPClassifier(max_iter=200, random_state=0, learning_rate_init=0.0001)
 basic_mlp.fit(X_train, y_train)
 tscore = basic_mlp.score(X_train, y_train)
-vscore = basic_mlp.score(X_test, y_test)
+vscore = basic_mlp.score(X_valid, y_valid)
 
 # Print training and test accuracies
 print(f"Accuracies\n"
-      f" Training: {tscore}\n"
-      f" Testing : {vscore}")
+      f" Training    : {tscore}\n"
+      f" Vallidation : {vscore}")
+
+"""
+"""
 # 0.9927777777777778
 # 0.6103703703703703
 # The training accuracy is really high. We are overfitting. Adjusting the alpha helps with this.
 # The test accuracy is almost twice as good as random guessing. Nice. This will improve with tuning.
 """
-
+"""
 # Here's an example of using the threaded K-Fold cross validation helper I made :)
-some_mlp = sklearn.neural_network.MLPClassifier(random_state=0)
-avg_acc = helpers.K_Fold_Threaded(2, X_train, y_train, some_mlp)
+some_mlp = sklearn.neural_network.MLPClassifier(random_state=0, learning_rate_init=0.001)
+avg_acc = helpers.K_Fold_Threaded(3, X_train, y_train, some_mlp)
+print(avg_acc)
+some_mlp = sklearn.neural_network.MLPClassifier(random_state=0, learning_rate_init=0.0001)
+avg_acc = helpers.K_Fold_Threaded(3, X_train, y_train, some_mlp)
 print(avg_acc)
 
-
+exit()
+"""
 
 """
 TO DO:
@@ -128,21 +163,22 @@ save best configuration
 
 
 # Load dataset
-dataset_path = "top1000_wf.csv"  # Ensure the file is in the same directory
+dataset_path = TRAIN_PATH  # Ensure the file is in the same directory
 df = pd.read_csv(dataset_path)
 
 # Extract features and labels (assuming the last column is the label)
-X = df.iloc[:, :-1].values  # All columns except the last
+X = df.iloc[:, :1000].values  # First 1000 columns
 y = df.iloc[:, -1].values   # The last column as labels
-
+"""
 # Define parameter grid
 param_grid = {
     "alpha": np.arange(0.5, 2.5, 0.25),
-    "hidden_layer_sizes": [(150,), (200,)]  # medium, large hidden layers
+    "hidden_layer_sizes": [(150,), (200,)], # medium, large hidden layers
+    "learning_rate_init": np.arange(0.000075, 0.0001, 0.000025)
 }
 
 # Initialize MLP Classifier
-mlp = MLPClassifier(max_iter=400, random_state=0)
+mlp = MLPClassifier(max_iter=200, random_state=0)
 
 # Define K-Fold cross-validation
 cv = KFold(n_splits=3, shuffle=True, random_state=0)
@@ -159,7 +195,7 @@ joblib.dump(grid_search, "grid_search_results.pkl")
 # Print results
 print("Best Parameters:", best_params)
 print("Best Score:", best_score)
-
+"""
 
 #best score is average K-Fold validation accuracy
 
@@ -221,11 +257,11 @@ print("Best Score:", best_score)
 
 
 #to find the test accuracy with after choosing the best parameters to use
+print("doin it now")
+final_model = MLPClassifier(alpha=0.5, hidden_layer_sizes=(150,), max_iter=200, random_state=0, learning_rate_init=0.000075)
+final_model.fit(X, y)
 
-final_model = MLPClassifier(alpha=0.5, hidden_layer_sizes=(150,), max_iter=400, random_state=0)
-final_model.fit(X_train, y_train)
-
-test_accuracy = final_model.score(X_test, y_test)
+test_accuracy = final_model.score(X_test[:1500], y_test[:1500])
 print("Test Accuracy:", test_accuracy)
 
 ##########Test Accuracy: 0.6503703703703704########
