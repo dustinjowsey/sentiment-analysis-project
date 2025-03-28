@@ -8,11 +8,10 @@ fh.close()
 fh          = open(CMB_PATH + TRN_NAME, 'r', encoding='utf8')
 fho         = open(BOW_PATH + str(BOW_QTY) + TRN_NAME, 'w', encoding='utf8')
 for line in fh:
-    comment, sentiment = line.strip().split(',')
+    comment, sentiment = line.strip()   .split(',')
 
     # Initialize new dict to represent word-frequency
     wf      = {w: 0 for w in top_n}
-
     # For each occurence of a word in top_n, increment its count by 1
     for w in comment.split(' '):
         w = w.strip()

@@ -7,6 +7,7 @@ word_count = {}
 for line in fh:
     line = line.split(',')[0]
     for w in line.split(' '):
+        if w == '': continue
         if w not in word_count:
             word_count[w] = 1
             continue
