@@ -15,6 +15,7 @@ PATH_TO_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 PATH_TO_DATA = PATH_TO_ROOT + "/data"
 PATH_TO_SAVE = PATH_TO_DATA + "/word_embedding/"
 BATCH_SIZE = 8
+SAMPLES_PER_LABEL = 9000
 
 class WordEmbedding:
     def __init__(self, file, path_to_glove=""):
@@ -45,12 +46,11 @@ class WordEmbedding:
             os.mkdir(PATH_TO_SAVE)
 
         _, ext = os.path.splitext(out_file)
-        out_df = pd.DataFrame({'comment': comments,'label': labels})
-        if ext == ".csv" and header == False:
+        out_df = pd.DataFrame(comments)
+        out_df[-1] = labels
+        if ext == ".csv":
             out_df.to_csv(PATH_TO_SAVE + out_file, header=False, index=False)
-        elif ext == ".csv":
-            out_df.to_csv(PATH_TO_SAVE + out_file, index=False)
-        elif ext == ".gz":
+        else:
             out_df.to_csv(PATH_TO_SAVE + out_file, compression="gzip", index=False)
 
     def __load_file(self):
@@ -73,7 +73,7 @@ class WordEmbedding:
         
         return df, header
      
-    def generate_bert(self, out_file):
+    def generate_bert(self, out_file, num_samples = SAMPLES_PER_LABEL):
         """
         Generates BERT word embeddings. This gives the vectors context
 
@@ -90,11 +90,41 @@ class WordEmbedding:
         else:
             comments = df[0].tolist()
         comments = [str(comment) for comment in comments]
+
+        _, ext = os.path.splitext(out_file)
+        if ext == ".csv":
+            labels = df[1]
+        else:
+            labels = df["label"]
+
+        if(num_samples > 0):
+            #samples to pick per label
+            samples_per_label = num_samples
+
+            list_of_labels = [-1, 0, 1]
+            indicies = {label: np.where(labels == label)[0] for label in list_of_labels}
+            #grab the first occurances
+            samples = {label: [i for i in range(0, samples_per_label)] for label in list_of_labels}
+            #samples = {label: np.random.choice(indicies[label], samples_per_label, replace=False) for label in list_of_labels}
+
+            all_samples = np.concatenate([samples[label] for label in list_of_labels])
+            #want to mix up labels now since samples are seperated by label
+            np.random.shuffle(all_samples)
+
+            final_labels = []
+            final_comments = []
+            for sample in all_samples:
+                final_labels.append(labels[sample])
+                final_comments.append(comments[sample])
+            
+            labels = final_labels
+            comments = final_comments
     
         #Need batches otherwise we will fill up memory
         batches = len(comments) // BATCH_SIZE + (1 if len(comments) % BATCH_SIZE != 0 else 0)
         
-        progress_bar = tqdm(total=batches, desc="Batches Completed ")
+        #progress_bar = tqdm(total=batches, desc="Batches Completed ")
+        print(f"Running {batches} batches")
         for i in range(batches):
             batch_comments = comments[i * BATCH_SIZE : (i + 1) * BATCH_SIZE]
 
@@ -112,18 +142,12 @@ class WordEmbedding:
                 cur_mask = mask[j]
                 embedding = comment_embeddings[cur_mask == 1].mean(dim=0)
                 embeddings.append(embedding)
-            progress_bar.update()
+            #progress_bar.update()
         
-        embeddings = torch.stack(embeddings).tolist()
-        comments = embeddings
-        
-        _, ext = os.path.splitext(out_file)
-        if ext == ".csv":
-            labels = df[1]
-        else:
-            labels = df["label"]
+        embeddings = torch.stack(embeddings)
+        out_comments = embeddings.tolist()
 
-        self.__save_file(out_file=out_file, header=header, comments=comments, labels=labels)
+        self.__save_file(out_file=out_file, header=header, comments=out_comments, labels=labels)
 
     def generate_word_embedding(self, out_file):
         """
@@ -163,3 +187,8 @@ class WordEmbedding:
         self.__save_file(out_file=out_file, header=header, comments=comments, labels=labels)
         #X = np.array([self.__convert_comment(str(comment), dim) for comment in comments])
         #return X, labels
+
+wb = WordEmbedding("/../alt/data/Combined/test.csv")
+wb.generate_bert("/../../alt/data/Combined/word_embedding/test.csv", num_samples=-1)
+wb = WordEmbedding("/../alt/data/Combined/train.csv")
+wb.generate_bert("/../../alt/data/Combined/word_embedding/train.csv", num_samples=9000)
