@@ -13,4 +13,8 @@ PATHS           = ["../data/Youtube/",
 
 BOW_QTY         = 5000
 BOW_TXT         = f"{BOW_QTY}BoW.txt"
-BOW_PATH        = "../data/Combined/BoW/"
+BOW_PATH        = f"{CMB_PATH}BoW/"
+
+NGM_QTY         = 5000
+NGM_TXT         = f"{NGM_QTY}NGRAM.txt"
+NGM_PATH        = f"{CMB_PATH}NGram/"
