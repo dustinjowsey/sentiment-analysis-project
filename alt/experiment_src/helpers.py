@@ -48,5 +48,6 @@ def K_Fold_Threaded(k, X, y, mlalgorithm):
     for t in threads:
         t.join()
     
+    print(results)
     return sum(results)/k
 

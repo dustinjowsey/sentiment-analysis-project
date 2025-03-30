@@ -229,10 +229,10 @@ exit()
 
 
 #to find the test accuracy with after choosing the best parameters to use
-final_model = MLPClassifier(alpha=0.5, hidden_layer_sizes=(150,), max_iter=200, random_state=0, learning_rate_init=0.000075)
+final_model = MLPClassifier(alpha=0.09, hidden_layer_sizes=(200,), max_iter=200, random_state=0, learning_rate_init=0.000075)
 final_model.fit(X_train, y_train)
 
 test_accuracy = final_model.score(X_test, y_test)
 print("Test Accuracy:", test_accuracy)
 
-##########Test Accuracy: 0.6503703703703704########
+##########Test Accuracy: 0.6503703703703704######## need to run this again
