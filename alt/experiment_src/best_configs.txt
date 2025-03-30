@@ -1,0 +1,2 @@
+BEST CONFIG FOR 5000-BOW
+final_model = MLPClassifier(alpha=0.09, hidden_layer_sizes=(200,), max_iter=200, random_state=0, learning_rate_init=0.000075)
