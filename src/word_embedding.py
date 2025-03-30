@@ -4,13 +4,22 @@ import constants
 import os
 from pathlib import Path
 from sklearn.model_selection import train_test_split 
+import csv
+import torch
+from transformers import BertTokenizer, BertModel
+from tqdm.notebook import tqdm
 
-PATH_TO_GLOVE = Path.home() / "Downloads" / "glove.twitter.27B.25d.txt"
+
+PATH_TO_GLOVE = Path.home() / "Downloads" / "glove.twitter.27B.200d.txt"
+PATH_TO_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+PATH_TO_DATA = PATH_TO_ROOT + "/data"
+PATH_TO_SAVE = PATH_TO_DATA + "/word_embedding/"
+BATCH_SIZE = 8
 
 class WordEmbedding:
     def __init__(self, file, path_to_glove=""):
         """
-        Creates the word embedding data for your tests.
+        Creates the word embedding data for your tests. Use on processed data. WILL NOT WORK ON UNPROCESSED DATA (i.e filtered)
 
         Args:
         file (str): The PREPROCESSED file to convert to word embeddings
@@ -31,16 +40,94 @@ class WordEmbedding:
 
         return np.mean(vectors)
     
-    def generate_word_embedding(self):
+    def __save_file(self, out_file, header, comments, labels):
+        if not os.path.exists(PATH_TO_SAVE):
+            os.mkdir(PATH_TO_SAVE)
+
+        _, ext = os.path.splitext(out_file)
+        out_df = pd.DataFrame({'comment': comments,'label': labels})
+        if ext == ".csv" and header == False:
+            out_df.to_csv(PATH_TO_SAVE + out_file, header=False, index=False)
+        elif ext == ".csv":
+            out_df.to_csv(PATH_TO_SAVE + out_file, index=False)
+        elif ext == ".gz":
+            out_df.to_csv(PATH_TO_SAVE + out_file, compression="gzip", index=False)
+
+    def __load_file(self):
+        header = True
+
+        _, ext = os.path.splitext(PATH_TO_DATA + self.file)
+        if ext == ".csv":
+            #check if the csv has a header or not before reading with pandas
+            temp = open(PATH_TO_DATA + self.file, 'r', encoding='utf-8')
+            sniffer = csv.Sniffer()
+            header = sniffer.has_header(temp.read(-1))
+            if header:
+                df = pd.read_csv(PATH_TO_DATA + self.file)
+            else:
+                df = pd.read_csv(PATH_TO_DATA + self.file, header=None)
+        elif ext == ".gz":
+            df = pd.read_csv(PATH_TO_DATA + self.file, compression='gzip')
+        else:
+            print(f"Error! The file must be either a csv or gz not {ext}")
+        
+        return df, header
+     
+    def generate_bert(self, out_file):
         """
-        Generates the word embeddings
+        Generates BERT word embeddings. This gives the vectors context
 
-        Returns:
-            You can use these in test train split
+        Based on the code in 2.5 https://medium.com/@davidlfliang/intro-getting-started-with-text-embeddings-using-bert-9f8c3b98dee6
+        """
+        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        model = BertModel.from_pretrained('bert-base-uncased')
+        
+        df, header = self.__load_file()
+        embeddings = []
 
-            X: List of vector averages for each comment 
-            
-            y: List of labels
+        if header:
+            comments = df['comment'].tolist()
+        else:
+            comments = df[0].tolist()
+        comments = [str(comment) for comment in comments]
+    
+        #Need batches otherwise we will fill up memory
+        batches = len(comments) // BATCH_SIZE + (1 if len(comments) % BATCH_SIZE != 0 else 0)
+        
+        progress_bar = tqdm(total=batches, desc="Batches Completed ")
+        for i in range(batches):
+            batch_comments = comments[i * BATCH_SIZE : (i + 1) * BATCH_SIZE]
+
+            inputs = tokenizer(batch_comments, padding=True, return_tensors="pt", truncation=True, max_length=512)
+            with torch.no_grad():
+                outputs = model(**inputs)
+
+            last_hidden_states = outputs.last_hidden_state
+
+            #average the vector for each comment
+            mask = inputs['attention_mask']
+
+            for j in range(len(batch_comments)):
+                comment_embeddings = last_hidden_states[j]
+                cur_mask = mask[j]
+                embedding = comment_embeddings[cur_mask == 1].mean(dim=0)
+                embeddings.append(embedding)
+            progress_bar.update()
+        
+        embeddings = torch.stack(embeddings).tolist()
+        comments = embeddings
+        
+        _, ext = os.path.splitext(out_file)
+        if ext == ".csv":
+            labels = df[1]
+        else:
+            labels = df["label"]
+
+        self.__save_file(out_file=out_file, header=header, comments=comments, labels=labels)
+
+    def generate_word_embedding(self, out_file):
+        """
+        Generates the word embeddings into /data/word_emebddings
         """
 
         if self.path_to_glove == "":
@@ -61,21 +148,18 @@ class WordEmbedding:
             word = splits[0]
             vector = np.asarray(splits[1:], dtype='float32')
             self.embeddings[word] = vector
-        
-        dim = len(splits) - 1
-        #Convert file into a vector format based on the glove file
-        _, ext = os.path.splitext(self.file)
+
+        dim = len(splits)
+        df, header = self.__load_file()
+
+        _, ext = os.path.splitext(out_file)
         if ext == ".csv":
-            df = pd.read_csv(self.file)
-        elif ext == ".gz":
-            df = pd.read_csv(self.file, compression='gzip')
+            comments = np.array([self.__convert_comment(str(comment), dim) for comment in df[0]])
+            labels = df[1]
         else:
-            print(f"Error! The file must be either a csv or gz not {ext}")
-            return
-        
-        comments = df["comment"]
-        labels = df["label"]
-        print(labels)
-        vector = []
-        X = np.array([self.__convert_comment(str(comment), dim) for comment in comments])
-        return X, labels
+            comments = np.array([self.__convert_comment(str(comment), dim) for comment in df['comment']])
+            labels = df["label"]
+
+        self.__save_file(out_file=out_file, header=header, comments=comments, labels=labels)
+        #X = np.array([self.__convert_comment(str(comment), dim) for comment in comments])
+        #return X, labels
