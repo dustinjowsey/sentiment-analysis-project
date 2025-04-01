@@ -214,6 +214,6 @@ class WordEmbedding:
         #return X, labels
 
 wb = WordEmbedding("/../alt/data/Combined/test.csv")
-wb.generate_bert("/../../alt/data/Combined/word_embedding/test.csv", num_samples=-1)
+wb.generate_bert("/../../alt/data/Combined/word_embedding/test.csv", num_samples=2000)
 wb = WordEmbedding("/../alt/data/Combined/train.csv")
 wb.generate_bert("/../../alt/data/Combined/word_embedding/train.csv", num_samples=9000)
