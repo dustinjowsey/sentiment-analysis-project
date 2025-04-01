@@ -1,3 +1,12 @@
 BEST CONFIG FOR 5000-BOW
 final_model = MLPClassifier(alpha=0.09, hidden_layer_sizes=(200,), max_iter=200, random_state=0, learning_rate_init=0.000075)
 3-Fold Score: 0.7725555555555556
+
+TF-IDF
+Best Parameters: {'alpha': 0.13, 'hidden_layer_sizes': (150,), 'learning_rate_init': 0.000125}
+Best Score: 0.6880000000000001
+
+
+WORD EMBEDDINGS
+Best Parameters: {'alpha': 0.15000000000000002, 'hidden_layer_sizes': (150,), 'learning_rate_init': 4e-05}
+Best Score: 0.6947407407407408
