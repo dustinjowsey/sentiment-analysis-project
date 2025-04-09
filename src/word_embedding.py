@@ -14,8 +14,8 @@ import itertools
 
 PATH_TO_GLOVE = Path.home() / "Downloads" / "glove.twitter.27B.200d.txt"
 PATH_TO_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-PATH_TO_DATA = PATH_TO_ROOT + "/data"
-PATH_TO_SAVE = PATH_TO_DATA + "/word_embedding/"
+PATH_TO_DATA = PATH_TO_ROOT + "/alt/data/Combined/"
+PATH_TO_SAVE = PATH_TO_DATA + "/word_embedding_large/"
 BATCH_SIZE = 8
 SAMPLES_PER_LABEL = 9000
 MAX_PROCESSES = 10
@@ -47,7 +47,6 @@ class WordEmbedding:
     def __save_file(self, out_file, header, comments, labels):
         if not os.path.exists(PATH_TO_SAVE):
             os.mkdir(PATH_TO_SAVE)
-
 
         _, ext = os.path.splitext(out_file)
         out_df = pd.DataFrame(comments)
@@ -123,8 +122,8 @@ class WordEmbedding:
         """
         filename = self.file.split('/')[-1]
         print(f"Creating Word Embeddings For '{filename}'")
-        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-        model = BertModel.from_pretrained('bert-base-uncased')
+        tokenizer = BertTokenizer.from_pretrained('bert-large-uncased')
+        model = BertModel.from_pretrained('bert-large-uncased')
         
         df, header = self.__load_file()
         embeddings = []
@@ -213,7 +212,7 @@ class WordEmbedding:
         #X = np.array([self.__convert_comment(str(comment), dim) for comment in comments])
         #return X, labels
 
-wb = WordEmbedding("/../alt/data/Combined/test.csv")
-wb.generate_bert("/../../alt/data/Combined/word_embedding/test.csv", num_samples=2000)
-wb = WordEmbedding("/../alt/data/Combined/train.csv")
-wb.generate_bert("/../../alt/data/Combined/word_embedding/train.csv", num_samples=9000)
+wb = WordEmbedding("test.csv")
+wb.generate_bert("test.csv", num_samples=2000)
+wb = WordEmbedding("train.csv")
+wb.generate_bert("train.csv", num_samples=9000)
